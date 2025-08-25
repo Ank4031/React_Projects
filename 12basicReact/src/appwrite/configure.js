@@ -21,11 +21,11 @@ export class Service{
                 conf.appwrite_collection_id,
                 slug,
                 {
-                    title,
-                    content,
-                    featuredImg,
-                    status,
-                    userId
+                    Title: title,
+                    Content: content,
+                    Img: featuredImg,
+                    Status: status,
+                    User_id: userId
                 }
             )
         } catch (error) {
@@ -40,10 +40,10 @@ export class Service{
                 conf.appwrite_collection_id,
                 slug,
                 {
-                    title,
-                    content,
-                    featuredImg,
-                    status
+                    Title: title,
+                    Content: content,
+                    Img: featuredImg,
+                    Status: status,
                 }
             )
         } catch (error) {
@@ -76,7 +76,7 @@ export class Service{
         }
     }
 
-    async getPosts(queries = [Query.equal("status", "actve")]){
+    async getPosts(queries = [Query.equal("status", "active")]){
         try {
             return await this.database.getDocument(
                 conf.appwrite_database_id,
@@ -113,11 +113,11 @@ export class Service{
         }
     }
 
-    async getFilePreview(fileId){
+    getFileView(Img){
         try {
-            return this.bucket.getFilePreview(
+            return this.bucket.getFileView(
                 conf.appwrite_bucked_id,
-                fileId,
+                Img,
             ) 
         } catch (error) {
             console.log(error);

@@ -32,7 +32,7 @@ function App() {
       <div className='w-full block text-center py-5'>
         <Header/>
         <main>
-          TODO <Outlet/>
+          <Outlet/>
         </main>
         <Footer/>
       </div>

@@ -1,0 +1,135 @@
+import React, {useCallback} from "react";
+import { useForm } from "react-hook-form";
+import { Button, Input, Select, RTE } from "../index.js";
+import service from "../../appwrite/configure.js";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+
+export default function PostForm({post}){
+    console.log("post: ",post);
+    
+    const {register, handleSubmit, watch, setValue, control, getValues, reset} = useForm({
+        defaultValues: {
+            title: post?.Title || "",
+            slug: post?.Slug || "",
+            content: post?.Content || "",
+            status: post?.Status || "active",
+        },
+    })
+    React.useEffect(() => {
+        if (post) {
+            reset({
+            title: post.Title || "",
+            slug: post.$id || "",
+            content: post.Content || "",
+            status: post.Status || "active",
+            });
+        }
+        }, [post, reset]);
+
+    const navigate = useNavigate();
+    const userData = useSelector(state=> state.userData)
+    const submit = async(data)=>{
+        if (post){
+            console.log("data: ",data);
+            
+            const file = data.image[0] ? await service.uploadFile(data.image[0]) : null
+            console.log("file: ",file);
+            console.log("post:  ", post);
+            
+            
+            if (file){
+                console.log("DELETE IS CALLED!!!!!");
+                await service.deleteFile(post.Img)
+            }
+            const dbpost = await service.updatePost(post.$id,{...data,featuredImg: file? file.$id : undefined})
+            if (dbpost){
+                navigate(`/post/${dbpost.$id}`)
+            }
+        }else{
+            const file = await service.uploadFile(data.image[0]);
+            if (file){
+                const fileid = file.$id
+                data.featuredImg = fileid
+                console.log("data: ",data);
+                console.log("useData: ",userData.data.$id);
+                
+                const dbpost = await service.createPost({...data,userId:userData.data.$id,})
+                if (dbpost){
+                    navigate(`/post/${dbpost.$id}`)
+                }
+            }
+        }
+    }
+
+    const slugTransform = useCallback((value)=>{
+        if (value && typeof value === 'string'){
+            return value
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "-")      // replace spaces with -
+            .replace(/[^a-z0-9\-]/g, "") // remove special chars (optional)
+            .replace(/-+/g, "-");     // collapse multiple dashes
+        }else{
+            return ""
+        }
+    },[])
+
+    React.useEffect(()=>{
+        const subscription = watch((value, {name})=>{
+            if (name === 'title'){
+                setValue('slug',slugTransform(value.title,{shouldValidate: true}))
+            }
+        })
+    },[watch, slugTransform, setValue])
+
+    return(
+        <form onSubmit={handleSubmit(submit)} className="flex flex-wrap">
+            <div className="w-2/3 px-2">
+                <Input
+                    label="Title :"
+                    placeholder="Title"
+                    className="mb-4"
+                    {...register("title", { required: true })}
+                />
+                <Input
+                    label="Slug :"
+                    placeholder="Slug"
+                    className="mb-4"
+                    {...register("slug", { required: true })}
+                    onInput={(e) => {
+                        setValue("slug", slugTransform(e.currentTarget.value), { shouldValidate: true });
+                    }}
+                />
+                <RTE label="Content :" name="content" control={control} defaultValue={getValues("content")} />
+            </div>
+            <div className="w-1/3 px-2">
+                <Input
+                    label="Featured Image :"
+                    type="file"
+                    className="mb-4"
+                    accept="image/png, image/jpg, image/jpeg, image/gif"
+                    {...register("image", { required: !post })}
+                />
+                {post && (
+                    <div className="w-full mb-4">
+                        <img
+                            src={service.getFileView(post.Img)}
+                            alt={post.title}
+                            className="rounded-lg"
+                        />
+                    </div>
+                )}
+                <Select
+                    options={["active", "inactive"]}
+                    label="Status"
+                    className="mb-4"
+                    {...register("status", { required: true })}
+                />
+                <Button type="submit" bgColor={post ? "bg-green-500" : undefined} className="w-full">
+                    {post ? "Update" : "Submit"}
+                </Button>
+            </div>
+        </form>
+    )
+}
